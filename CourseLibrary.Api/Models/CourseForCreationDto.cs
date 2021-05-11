@@ -11,6 +11,7 @@ namespace CourseLibrary.Api.Models
     public class CourseForCreationDto : CourseForManipulationDto
     {
         public Author Author { get; set; }
+        public override string Description { get => base.Description; set => base.Description = value; }
 
         //public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         //{

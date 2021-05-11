@@ -9,5 +9,6 @@ namespace CourseLibrary.Api.Models
 {
     public class CourseForUpdateDto : CourseForManipulationDto
     {
+        public override string Description { get => base.Description; set => base.Description = value; }
     }
 }

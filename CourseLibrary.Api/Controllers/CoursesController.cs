@@ -3,6 +3,7 @@ using CourseLibrary.Api.Entities;
 using CourseLibrary.Api.Models;
 using CourseLibrary.Api.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
@@ -81,7 +82,38 @@ namespace CourseLibrary.Api.Controllers
         }
 
         [HttpPut("{courseId}")]
-        public ActionResult UpadateRessourceForAuthor(Guid authorId, Guid courseId, CourseForUpdateDto course)
+        public IActionResult UpadateRessourceForAuthor(Guid authorId, Guid courseId, CourseForUpdateDto course)
+        {
+            if (!_courseLibraryRepository.AuthorExists(authorId))
+            {
+                return NotFound();
+            }
+
+            var courseForAuthorFromRepo = _courseLibraryRepository.GetCourse(authorId, courseId);
+
+            if (courseForAuthorFromRepo == null)
+            {
+                var courseToAdd = _mapper.Map<Course>(course);
+                courseToAdd.Id = courseId;
+
+                _courseLibraryRepository.AddCourse(authorId, courseToAdd);
+                
+                _courseLibraryRepository.Save();
+
+                return CreatedAtRoute("GetCourseForAuthor", new { authorId = authorId, courseId = courseToAdd.Id }, courseToAdd);
+            }
+
+            _mapper.Map(course, courseForAuthorFromRepo);
+
+            _courseLibraryRepository.UpdateCourse(courseForAuthorFromRepo);
+
+            _courseLibraryRepository.Save();
+
+            return NoContent();
+        }
+
+        [HttpPatch("{courseId}")]
+        public ActionResult PartiallyUpadateCourseForAuthor(Guid authorId, Guid courseId, JsonPatchDocument<CourseForUpdateDto> patchDocument)
         {
             if (!_courseLibraryRepository.AuthorExists(authorId))
             {
@@ -95,13 +127,18 @@ namespace CourseLibrary.Api.Controllers
                 return NotFound();
             }
 
-            _mapper.Map(course, courseForAuthorFromRepo);
+            var courseToPach = _mapper.Map<CourseForUpdateDto>(courseForAuthorFromRepo);
+
+            // add validation
+            patchDocument.ApplyTo(courseToPach);
+
+            _mapper.Map(courseToPach, courseForAuthorFromRepo);
 
             _courseLibraryRepository.UpdateCourse(courseForAuthorFromRepo);
 
             _courseLibraryRepository.Save();
 
-            return NoContent();
+            return NotFound();
         }
     }
 }
