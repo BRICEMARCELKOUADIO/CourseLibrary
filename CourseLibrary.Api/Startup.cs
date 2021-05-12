@@ -73,7 +73,7 @@ namespace CourseLibrary.Api
 
             services.AddDbContext<CourseLibraryContext>(options =>
             {
-                options.UseSqlServer(@"Server=.;Database=CourseLibraryDB;Trusted_Connection=True");
+                options.UseSqlServer(@"Server=.\SQLExpress;Database=CourseLibraryDB;Trusted_Connection=True");
             });
         }
 
