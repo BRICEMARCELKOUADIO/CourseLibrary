@@ -5,6 +5,10 @@ using CourseLibrary.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -130,7 +134,12 @@ namespace CourseLibrary.Api.Controllers
             var courseToPach = _mapper.Map<CourseForUpdateDto>(courseForAuthorFromRepo);
 
             // add validation
-            patchDocument.ApplyTo(courseToPach);
+            patchDocument.ApplyTo(courseToPach, ModelState);
+
+            if (!TryValidateModel(courseToPach))
+            {
+                return ValidationProblem(ModelState);
+            }
 
             _mapper.Map(courseToPach, courseForAuthorFromRepo);
 
@@ -138,7 +147,35 @@ namespace CourseLibrary.Api.Controllers
 
             _courseLibraryRepository.Save();
 
-            return NotFound();
+            return NoContent();
+        }
+
+        [HttpDelete("{courseId}")]
+        public ActionResult DeleteCourseForAuthor(Guid authorId, Guid courseId)
+        {
+            if (!_courseLibraryRepository.AuthorExists(authorId))
+            {
+                return NotFound();
+            }
+
+            var courseForAuthorFromRepo = _courseLibraryRepository.GetCourse(authorId, courseId);
+
+            if (courseForAuthorFromRepo == null)
+            {
+                return NotFound();
+            }
+
+            _courseLibraryRepository.DeleteCourse(courseForAuthorFromRepo);
+            _courseLibraryRepository.Save();
+
+            return NoContent();
+        }
+
+        public override ActionResult ValidationProblem([ActionResultObjectValue] ModelStateDictionary modelStateDictionary)
+        {
+            var options = HttpContext.RequestServices.GetRequiredService<IOptions<ApiBehaviorOptions>>();
+
+            return (ActionResult)options.Value.InvalidModelStateResponseFactory(ControllerContext);
         }
     }
 }
